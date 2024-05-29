@@ -29,6 +29,12 @@ impl SeatId {
     }
 }
 
+impl Display for SeatId {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub(crate) struct TrainDataService {
     trains: TrainsData,
@@ -52,17 +58,29 @@ pub(crate) struct Train {
     seats: HashMap<SeatId, Seat>,
 }
 
+impl Train {
+    pub(crate) fn get(&self, seat_id: &SeatId) -> Option<&Seat> {
+        self.seats.get(seat_id)
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Clone, serde::Serialize, serde::Deserialize)]
-struct Seat {
+pub(crate) struct Seat {
     seat_number: String,
     coach: String,
     booking_reference: Option<BookingReference>,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, serde::Serialize)]
+impl Seat {
+    pub(crate) fn booking_reference(&self) -> Option<&BookingReference> {
+        self.booking_reference.as_ref()
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, serde::Serialize, serde::Deserialize)]
 pub(crate) struct Reservation {
-    seats: Vec<SeatId>,
-    booking_reference: BookingReference,
+    pub(crate) seats: Vec<SeatId>,
+    pub(crate) booking_reference: BookingReference,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -93,6 +111,7 @@ impl Train {
                 seats_already_reserved.push(seat_id.clone());
             }
         }
+
         if !seats_already_reserved.is_empty() {
             return Err(Error::SeatsAlreadyReserved(seats_already_reserved));
         }
