@@ -99,7 +99,7 @@ You can use this service to get a unique booking reference. Make a `POST`
 request to:
 
 ```
-http://localhost:8081/booking_reference
+/booking_reference
 ```
 
 This will return a string that looks a bit like this:
@@ -137,7 +137,8 @@ has available, with a structure like this:
 Note that we've left out all the extraneous details about where the train is
 going to and from, at what time, whether there's a buffet car etc. All that's
 there is which seats the train has, and if they are already booked. A seat is
-available if the `booking_reference` field contains `null`.
+available if the `booking_reference` field contains `null`. If
+`booking_reference` contains a string, that seat is reserved already.
 
 ### Reservation Endpoint
 
@@ -159,6 +160,11 @@ two fields:
 
 Note that the server will prevent you from booking non-existent seats, as well
 as seats that are already reserved with another booking reference.
+
+Note that this is not the same as the reservation endpoint you are to
+implement; it doesn't create a booking reference and doesn't implement the
+business rules. But you can use it in your implementation to make the
+reservation.
 
 ### Reset endpoint
 
