@@ -68,8 +68,7 @@ seats as command line arguments, and returns the same reservation JSON as above.
 
 ## Train services
 
-Some backend REST APIs have already been implemented that you need to use in
-the implementation. The following endpoints are provided:
+http://localhost:8081 are provided:
 
 - `/booking_reference` to create a new booking reference.
 
@@ -83,19 +82,15 @@ For testing purposes, there is a local service you can run locally. You can
 assume the real service will behave the same way, but be available on a
 different URL.
 
-Start the server by going into the `train_service` directory and running `cargo :
+While you can implement the new service in any language you like, you need Rust
+to run the existing services, unless you obtain a precompiled binary. Start the
+server by going into the `train_service` directory and running `cargo :
 
 ```bash
 cargo run
 ```
 
-It will start on http://localhost:8081.
-
-Let's go into each endpoint in detail.
-
-### Booking Reference Endpoint at `/booking_reference`
-
-You can use this service to get a unique booking reference. Make a `POST`
+It will start on http://localhost:8081.http://localhost:8081king reference. Make a `POST`
 request to:
 
 ```
