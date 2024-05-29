@@ -3,19 +3,19 @@ use std::collections::HashMap;
 use crate::booking_reference::BookingReference;
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash, serde::Serialize, serde::Deserialize)]
-struct TrainId(String);
+pub(crate) struct TrainId(String);
 
 impl TrainId {
-    pub fn new<S: Into<String>>(id: S) -> Self {
+    pub(crate) fn new<S: Into<String>>(id: S) -> Self {
         Self(id.into())
     }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash, serde::Serialize, serde::Deserialize)]
-struct SeatId(String);
+pub(crate) struct SeatId(String);
 
 impl SeatId {
-    pub fn new<S: Into<String>>(id: S) -> Self {
+    pub(crate) fn new<S: Into<String>>(id: S) -> Self {
         Self(id.into())
     }
 }
@@ -32,10 +32,14 @@ impl TrainsData {
     fn new() -> Self {
         TrainsData(HashMap::new())
     }
+
+    pub(crate) fn get(&self, train_id: &TrainId) -> Option<&Train> {
+        self.0.get(train_id)
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, serde::Serialize, serde::Deserialize)]
-struct Train {
+pub(crate) struct Train {
     seats: HashMap<SeatId, Seat>,
 }
 
@@ -47,13 +51,13 @@ struct Seat {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, serde::Serialize)]
-struct Reservation {
+pub(crate) struct Reservation {
     seats: Vec<SeatId>,
     booking_reference: BookingReference,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-enum Error {
+pub(crate) enum Error {
     TrainDoesNotExist(TrainId),
     SeatsDoNotExist(Vec<SeatId>),
     SeatsAlreadyReserved(Vec<SeatId>),

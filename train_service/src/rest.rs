@@ -1,12 +1,12 @@
 use std::borrow::BorrowMut;
 use std::sync::{Arc, Mutex};
 
-use axum::extract::State;
+use axum::extract::{Path, State};
 use axum::routing::{get, post};
 use axum::Router;
 
 use crate::booking_reference::{BookingReference, BookingReferenceService};
-use crate::train::TrainDataService;
+use crate::train::{self, TrainDataService, TrainId};
 
 pub(crate) struct AppState {
     booking_reference_service: BookingReferenceService,
@@ -34,10 +34,12 @@ pub(crate) async fn serve(state: AppState) {
 
 fn app(state: AppState) -> axum::Router {
     let state = Arc::new(Mutex::new(state));
-    axum::Router::new().route(
-        "/booking_reference",
-        post(booking_reference).with_state(state.clone()),
-    )
+    axum::Router::new()
+        .route(
+            "/booking_reference",
+            post(booking_reference).with_state(state.clone()),
+        )
+        .route("/train/:train_id", get(train).with_state(state.clone()))
 }
 
 async fn booking_reference(
@@ -52,9 +54,26 @@ async fn booking_reference(
     axum::Json(reference)
 }
 
+async fn train(
+    Path(train_id): Path<TrainId>,
+    State(state): State<Arc<Mutex<AppState>>>,
+) -> axum::Json<train::Train> {
+    let train = state
+        .lock()
+        .unwrap()
+        .borrow_mut()
+        .train_data_service
+        .train(&train_id)
+        .unwrap()
+        .clone();
+    axum::Json(train)
+}
+
 #[cfg(test)]
 mod tests {
     use axum_test::{TestServer, TestServerConfig};
+
+    use crate::train::{Train, TrainId, TrainsData};
 
     // based around https://github.com/tokio-rs/axum/blob/main/examples/testing/src/main.rs
     use super::*;
@@ -79,5 +98,18 @@ mod tests {
             .json::<BookingReference>();
 
         assert_eq!(response, BookingReference::new("1"));
+    }
+
+    #[tokio::test]
+    async fn test_train_local_2000_get() {
+        let server = new_test_app();
+
+        let train = server.get("/train/local_1000").await.json::<Train>();
+
+        let trains_str = include_str!("trains.json");
+        let trains: TrainsData = serde_json::from_str(trains_str).unwrap();
+        let local_2000 = trains.get(&TrainId::new("local_1000")).unwrap();
+
+        assert_eq!(&train, local_2000);
     }
 }
