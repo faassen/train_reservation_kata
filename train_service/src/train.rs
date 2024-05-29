@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use crate::booking_reference::BookingReference;
+
 #[derive(Debug, PartialEq, Eq, Clone, Hash, serde::Serialize, serde::Deserialize)]
 struct TrainId(String);
 
@@ -13,15 +15,6 @@ impl TrainId {
 struct SeatId(String);
 
 impl SeatId {
-    pub fn new<S: Into<String>>(id: S) -> Self {
-        Self(id.into())
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, Clone, serde::Serialize, serde::Deserialize)]
-struct BookingReference(String);
-
-impl BookingReference {
     pub fn new<S: Into<String>>(id: S) -> Self {
         Self(id.into())
     }
