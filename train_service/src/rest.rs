@@ -36,6 +36,7 @@ pub async fn serve(state: AppState) {
 fn app(state: AppState) -> axum::Router {
     let state = Arc::new(Mutex::new(state));
     axum::Router::new()
+        .route("/", get(root))
         .route(
             "/booking_reference",
             post(booking_reference).with_state(state.clone()),
@@ -49,6 +50,10 @@ fn app(state: AppState) -> axum::Router {
             "/train/:train_id/reset",
             post(train_reset).with_state(state.clone()),
         )
+}
+
+async fn root() -> &'static str {
+    "Train service"
 }
 
 async fn booking_reference(

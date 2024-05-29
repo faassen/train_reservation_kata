@@ -89,6 +89,8 @@ Start the server by going into the `train_service` directory and running `cargo 
 cargo run
 ```
 
+It will start on http://localhost:8081.
+
 Let's go into each endpoint in detail.
 
 ### Booking Reference Endpoint at `/booking_reference`
