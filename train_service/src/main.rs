@@ -1,5 +1,6 @@
 mod booking_reference;
 mod rest;
+mod train;
 
 use rest::serve;
 
