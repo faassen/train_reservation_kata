@@ -1,6 +1,6 @@
-use ahash::AHashMap as HashMap;
+use std::collections::HashMap;
 
-#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash, serde::Serialize, serde::Deserialize)]
 struct TrainId(String);
 
 impl TrainId {
@@ -9,7 +9,7 @@ impl TrainId {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash, serde::Serialize, serde::Deserialize)]
 struct SeatId(String);
 
 impl SeatId {
@@ -18,7 +18,7 @@ impl SeatId {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, serde::Serialize, serde::Deserialize)]
 struct BookingReference(String);
 
 impl BookingReference {
@@ -32,21 +32,20 @@ struct TrainDataService {
     trains: HashMap<TrainId, Train>,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, serde::Serialize, serde::Deserialize)]
 struct Train {
     seats: HashMap<SeatId, Seat>,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, serde::Serialize, serde::Deserialize)]
 struct Seat {
     seat_number: String,
     coach: String,
     booking_reference: Option<BookingReference>,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, serde::Serialize)]
 struct Reservation {
-    train_id: TrainId,
     seats: Vec<SeatId>,
     booking_reference: BookingReference,
 }
@@ -58,7 +57,44 @@ enum Error {
     SeatsAlreadyReserved(Vec<SeatId>),
 }
 
-impl Train {}
+impl Train {
+    pub(crate) fn reserve(&mut self, reservation: &Reservation) -> Result<(), Error> {
+        // first check whether we have any non-existent seats, report error if any of them are
+        let mut non_existent_seat_ids = Vec::new();
+        for seat_id in &reservation.seats {
+            if !self.seats.contains_key(seat_id) {
+                non_existent_seat_ids.push(seat_id.clone());
+            }
+        }
+        if !non_existent_seat_ids.is_empty() {
+            return Err(Error::SeatsDoNotExist(non_existent_seat_ids));
+        }
+
+        // then report error if any seat is already reserved
+        let mut seats_already_reserved = Vec::new();
+        for seat_id in &reservation.seats {
+            let seat = self.seats.get(seat_id).unwrap();
+            if seat.booking_reference.is_some() {
+                seats_already_reserved.push(seat_id.clone());
+            }
+        }
+        if !seats_already_reserved.is_empty() {
+            return Err(Error::SeatsAlreadyReserved(seats_already_reserved));
+        }
+
+        // finally reserve the seats
+        for seat_id in &reservation.seats {
+            let seat = self.seats.get_mut(seat_id).unwrap();
+            seat.booking_reference = Some(reservation.booking_reference.clone());
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn reset(&mut self, train_id: &TrainId) -> Result<(), Error> {
+        todo!()
+    }
+}
 
 impl TrainDataService {
     pub(crate) fn new(trains: HashMap<TrainId, Train>) -> TrainDataService {
@@ -75,46 +111,6 @@ impl TrainDataService {
         self.trains
             .get_mut(train_id)
             .ok_or(Error::TrainDoesNotExist(train_id.clone()))
-    }
-
-    pub(crate) fn reserve(&mut self, reservation: &Reservation) -> Result<(), Error> {
-        let train = self.train(&reservation.train_id)?;
-
-        // first check whether we have any non-existent seats, report error if any of them are
-        let mut non_existent_seat_ids = Vec::new();
-        for seat_id in &reservation.seats {
-            if !train.seats.contains_key(seat_id) {
-                non_existent_seat_ids.push(seat_id.clone());
-            }
-        }
-        if !non_existent_seat_ids.is_empty() {
-            return Err(Error::SeatsDoNotExist(non_existent_seat_ids));
-        }
-
-        // then report error if any seat is already reserved
-        let mut seats_already_reserved = Vec::new();
-        for seat_id in &reservation.seats {
-            let seat = train.seats.get(seat_id).unwrap();
-            if seat.booking_reference.is_some() {
-                seats_already_reserved.push(seat_id.clone());
-            }
-        }
-        if !seats_already_reserved.is_empty() {
-            return Err(Error::SeatsAlreadyReserved(seats_already_reserved));
-        }
-
-        // finally reserve the seats
-        let train = self.train_mut(&reservation.train_id)?;
-        for seat_id in &reservation.seats {
-            let seat = train.seats.get_mut(seat_id).unwrap();
-            seat.booking_reference = Some(reservation.booking_reference.clone());
-        }
-
-        Ok(())
-    }
-
-    pub(crate) fn reset(&mut self, train_id: &TrainId) -> Result<(), Error> {
-        todo!();
     }
 }
 
@@ -165,8 +161,7 @@ mod tests {
 
     #[test]
     fn test_reserve_seat() {
-        let mut trains = HashMap::new();
-        let train = Train {
+        let mut train = Train {
             seats: HashMap::from([(
                 SeatId::new("1A"),
                 Seat {
@@ -176,17 +171,12 @@ mod tests {
                 },
             )]),
         };
-        let train_id = TrainId::new("foo_train");
-        trains.insert(train_id.clone(), train);
-        let mut service = TrainDataService::new(trains);
-        service
+        train
             .reserve(&Reservation {
-                train_id: train_id.clone(),
                 seats: vec![SeatId::new("1A")],
                 booking_reference: BookingReference::new("123456"),
             })
             .unwrap();
-        let train = service.train(&train_id).unwrap();
         let seat = train.seats.get(&SeatId::new("1A")).unwrap();
         assert_eq!(
             seat.booking_reference,
@@ -196,8 +186,7 @@ mod tests {
 
     #[test]
     fn test_reserve_when_already_reserved() {
-        let mut trains = HashMap::new();
-        let train = Train {
+        let mut train = Train {
             seats: HashMap::from([(
                 SeatId::new("1A"),
                 Seat {
@@ -207,10 +196,7 @@ mod tests {
                 },
             )]),
         };
-        trains.insert(TrainId::new("foo_train"), train);
-        let mut service = TrainDataService::new(trains);
-        let result = service.reserve(&Reservation {
-            train_id: TrainId::new("foo_train"),
+        let result = train.reserve(&Reservation {
             seats: vec![SeatId::new("1A")],
             booking_reference: BookingReference::new("new"),
         });

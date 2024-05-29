@@ -1,13 +1,13 @@
-struct BookingReferenceService {
+pub(crate) struct BookingReferenceService {
     counter: u64,
 }
 
 impl BookingReferenceService {
-    pub fn new(start: u64) -> Self {
+    pub(crate) fn new(start: u64) -> Self {
         BookingReferenceService { counter: start }
     }
 
-    pub fn booking_reference(&mut self) -> String {
+    pub(crate) fn booking_reference(&mut self) -> String {
         self.counter += 1;
         // return a hex number
         format!("{:x}", self.counter)
