@@ -45,6 +45,10 @@ fn app(state: AppState) -> axum::Router {
             "/train/:train_id/reserve",
             post(train_reserve).with_state(state.clone()),
         )
+        .route(
+            "/train/:train_id/reset",
+            post(train_reset).with_state(state.clone()),
+        )
 }
 
 async fn booking_reference(
@@ -82,6 +86,20 @@ async fn train_reserve(
     let train = state.borrow_mut().train_data_service.train_mut(&train_id)?;
     train.reserve(&reservation)?;
     Ok(axum::Json(train.clone()))
+}
+
+async fn train_reset(
+    extract::Path(train_id): extract::Path<TrainId>,
+    extract::State(state): extract::State<Arc<Mutex<AppState>>>,
+) -> impl IntoResponse {
+    let mut state = state.lock().unwrap();
+    let train = state
+        .borrow_mut()
+        .train_data_service
+        .train_mut(&train_id)
+        .unwrap();
+    train.reset();
+    axum::Json(train.clone())
 }
 
 impl IntoResponse for Error {
@@ -239,5 +257,59 @@ mod tests {
 
         assert_eq!(response.status_code(), 400);
         assert_eq!(response.text(), "Seats [1A] are already reserved");
+    }
+
+    #[tokio::test]
+    async fn test_reserve_reset() {
+        let server = new_test_app();
+
+        // make a reservation
+        let train = server
+            .post("/train/local_1000/reserve")
+            .json(&Reservation {
+                seats: vec![SeatId::new("1A")],
+                booking_reference: BookingReference::new("first"),
+            })
+            .await
+            .json::<Train>();
+
+        // the first reservation is there
+        assert_eq!(
+            train
+                .get(&SeatId::new("1A"))
+                .unwrap()
+                .booking_reference()
+                .unwrap(),
+            &BookingReference::new("first")
+        );
+
+        // reset the train
+        let train = server.post("/train/local_1000/reset").await.json::<Train>();
+
+        // the reservation is gone
+        assert_eq!(
+            train.get(&SeatId::new("1A")).unwrap().booking_reference(),
+            None
+        );
+
+        // try to reserve again
+        let train = server
+            .post("/train/local_1000/reserve")
+            .json(&Reservation {
+                seats: vec![SeatId::new("1A")],
+                booking_reference: BookingReference::new("second"),
+            })
+            .await
+            .json::<Train>();
+
+        // the second reservation is there
+        assert_eq!(
+            train
+                .get(&SeatId::new("1A"))
+                .unwrap()
+                .booking_reference()
+                .unwrap(),
+            &BookingReference::new("second")
+        );
     }
 }

@@ -125,8 +125,10 @@ impl Train {
         Ok(())
     }
 
-    pub(crate) fn reset(&mut self, train_id: &TrainId) -> Result<(), Error> {
-        todo!()
+    pub(crate) fn reset(&mut self) {
+        for seat in self.seats.values_mut() {
+            seat.booking_reference = None;
+        }
     }
 }
 
