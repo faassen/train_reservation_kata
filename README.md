@@ -22,35 +22,49 @@ over 70% for some coaches, just make sure to keep to 70% for the whole train.
 
 ## The new service to build
 
-The Ticket Office service needs to respond to a HTTP POST request for a train
-that comes with JSON data telling you which train the customer wants to reserve
-seats on, and how many they want. It should return a JSON document detailing
-the reservation that has been made.
+The Ticket Office service needs you to implement a REST service on the
+`/reserve` URL. It should respond to a HTTP POST request for a train that comes
+with JSON data in the request body describing which train the customer wants to
+reserve seats on, and how many seats they want:
 
-A reservation comprises a JSON document with three fields, the train id,
-booking reference, and the ids of the seats that have been reserved. Example
-json:
+```json
+{
+  "train_id": "express_2000",
+  "seat_count": 4
+}
+```
+
+In the request body return a JSON document detailing the reservation that has been
+made:
 
 ```json
 {
   "train_id": "express_2000",
   "booking_reference": "75bcd15",
-  "seats": ["1A", "1B"]
+  "seats": ["1A", "2A", "3A", "4A"]
 }
 ```
 
 If it is not possible to find suitable seats to reserve, the service should
-instead return an empty list of seats and an empty string for the booking
-reference.
+instead return an empty list of seats and `null` for the booking
+reference:
 
-To do so you can use the backend REST services described below. Be careful to
-implement the business rules!
+```json
+{
+  "train_id": "express_2000",
+  "booking_reference": null,
+  "seats": []
+}
+```
+
+To implement this behavior, you can use the backend REST services described
+below. Be careful to implement the business rules!
 
 ### Command line option
 
-If you think it's too hard to come up with a fully deployed HTTP service, you
-could instead write a command line program which takes the train id and number
-of seats as command line arguments, and returns the same JSON as above.
+As an alternative to coming up with a fully deployed HTTP service, you can
+instead write a command line program which takes the train id and number of
+seats as command line arguments, and returns the same reservation JSON as above.
 
 ## Train services
 

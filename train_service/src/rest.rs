@@ -9,13 +9,13 @@ use axum::routing::{get, post};
 use crate::booking_reference::BookingReferenceService;
 use crate::train::{Error, Reservation, SeatId, TrainDataService, TrainId};
 
-pub(crate) struct AppState {
+pub struct AppState {
     booking_reference_service: BookingReferenceService,
     train_data_service: TrainDataService,
 }
 
 impl AppState {
-    pub(crate) fn new() -> AppState {
+    pub fn new() -> AppState {
         let trains_str = include_str!("trains.json");
         let trains = serde_json::from_str(trains_str).unwrap();
         AppState {
@@ -25,7 +25,7 @@ impl AppState {
     }
 }
 
-pub(crate) async fn serve(state: AppState) {
+pub async fn serve(state: AppState) {
     let app = app(state);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8081").await.unwrap();

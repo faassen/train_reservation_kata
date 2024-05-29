@@ -6,10 +6,11 @@ use std::{
 use crate::booking_reference::BookingReference;
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash, serde::Serialize, serde::Deserialize)]
-pub(crate) struct TrainId(String);
+pub struct TrainId(String);
 
 impl TrainId {
-    pub(crate) fn new<S: Into<String>>(id: S) -> Self {
+    #[cfg(test)]
+    pub fn new<S: Into<String>>(id: S) -> Self {
         Self(id.into())
     }
 }
@@ -21,10 +22,11 @@ impl Display for TrainId {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash, serde::Serialize, serde::Deserialize)]
-pub(crate) struct SeatId(String);
+pub struct SeatId(String);
 
 impl SeatId {
-    pub(crate) fn new<S: Into<String>>(id: S) -> Self {
+    #[cfg(test)]
+    pub fn new<S: Into<String>>(id: S) -> Self {
         Self(id.into())
     }
 }
@@ -36,62 +38,66 @@ impl Display for SeatId {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub(crate) struct TrainDataService {
+pub struct TrainDataService {
     trains: TrainsData,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, serde::Serialize, serde::Deserialize)]
-pub(crate) struct TrainsData(HashMap<TrainId, Train>);
+pub struct TrainsData(HashMap<TrainId, Train>);
 
 impl TrainsData {
+    #[cfg(test)]
     fn new() -> Self {
         TrainsData(HashMap::new())
     }
 
-    pub(crate) fn get(&self, train_id: &TrainId) -> Option<&Train> {
+    #[cfg(test)]
+    pub fn get(&self, train_id: &TrainId) -> Option<&Train> {
         self.0.get(train_id)
     }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, serde::Serialize, serde::Deserialize)]
-pub(crate) struct Train {
+pub struct Train {
     seats: HashMap<SeatId, Seat>,
 }
 
 impl Train {
-    pub(crate) fn get(&self, seat_id: &SeatId) -> Option<&Seat> {
+    #[cfg(test)]
+    pub fn get(&self, seat_id: &SeatId) -> Option<&Seat> {
         self.seats.get(seat_id)
     }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, serde::Serialize, serde::Deserialize)]
-pub(crate) struct Seat {
+pub struct Seat {
     seat_number: String,
     coach: String,
     booking_reference: Option<BookingReference>,
 }
 
 impl Seat {
-    pub(crate) fn booking_reference(&self) -> Option<&BookingReference> {
+    #[cfg(test)]
+    pub fn booking_reference(&self) -> Option<&BookingReference> {
         self.booking_reference.as_ref()
     }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, serde::Serialize, serde::Deserialize)]
-pub(crate) struct Reservation {
-    pub(crate) seats: Vec<SeatId>,
-    pub(crate) booking_reference: BookingReference,
+pub struct Reservation {
+    pub seats: Vec<SeatId>,
+    pub booking_reference: BookingReference,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub(crate) enum Error {
+pub enum Error {
     TrainDoesNotExist(TrainId),
     SeatsDoNotExist(Vec<SeatId>),
     SeatsAlreadyReserved(Vec<SeatId>),
 }
 
 impl Train {
-    pub(crate) fn reserve(&mut self, reservation: &Reservation) -> Result<(), Error> {
+    pub fn reserve(&mut self, reservation: &Reservation) -> Result<(), Error> {
         // first check whether we have any non-existent seats, report error if any of them are
         let mut non_existent_seat_ids = Vec::new();
         for seat_id in &reservation.seats {
@@ -125,7 +131,7 @@ impl Train {
         Ok(())
     }
 
-    pub(crate) fn reset(&mut self) {
+    pub fn reset(&mut self) {
         for seat in self.seats.values_mut() {
             seat.booking_reference = None;
         }
@@ -133,18 +139,18 @@ impl Train {
 }
 
 impl TrainDataService {
-    pub(crate) fn new(trains: TrainsData) -> TrainDataService {
+    pub fn new(trains: TrainsData) -> TrainDataService {
         TrainDataService { trains }
     }
 
-    pub(crate) fn train(&self, train_id: &TrainId) -> Result<&Train, Error> {
+    pub fn train(&self, train_id: &TrainId) -> Result<&Train, Error> {
         self.trains
             .0
             .get(train_id)
             .ok_or(Error::TrainDoesNotExist(train_id.clone()))
     }
 
-    pub(crate) fn train_mut(&mut self, train_id: &TrainId) -> Result<&mut Train, Error> {
+    pub fn train_mut(&mut self, train_id: &TrainId) -> Result<&mut Train, Error> {
         self.trains
             .0
             .get_mut(train_id)

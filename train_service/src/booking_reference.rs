@@ -1,22 +1,22 @@
-pub(crate) struct BookingReferenceService {
+pub struct BookingReferenceService {
     counter: u64,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, serde::Serialize, serde::Deserialize)]
-pub(crate) struct BookingReference(String);
+pub struct BookingReference(String);
 
 impl BookingReference {
-    pub(crate) fn new<S: Into<String>>(id: S) -> Self {
+    pub fn new<S: Into<String>>(id: S) -> Self {
         Self(id.into())
     }
 }
 
 impl BookingReferenceService {
-    pub(crate) fn new(start: u64) -> Self {
+    pub fn new(start: u64) -> Self {
         BookingReferenceService { counter: start }
     }
 
-    pub(crate) fn booking_reference(&mut self) -> BookingReference {
+    pub fn booking_reference(&mut self) -> BookingReference {
         self.counter += 1;
         // return a hex number
         BookingReference::new(format!("{:x}", self.counter))
