@@ -1,4 +1,7 @@
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    fmt::{self, Display, Formatter},
+};
 
 use crate::booking_reference::BookingReference;
 
@@ -8,6 +11,12 @@ pub(crate) struct TrainId(String);
 impl TrainId {
     pub(crate) fn new<S: Into<String>>(id: S) -> Self {
         Self(id.into())
+    }
+}
+
+impl Display for TrainId {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 

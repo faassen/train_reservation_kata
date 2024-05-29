@@ -2,11 +2,13 @@ use std::borrow::BorrowMut;
 use std::sync::{Arc, Mutex};
 
 use axum::extract::{Path, State};
+use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use axum::Router;
 
 use crate::booking_reference::{BookingReference, BookingReferenceService};
-use crate::train::{self, TrainDataService, TrainId};
+use crate::train::{self, Error, TrainDataService, TrainId};
 
 pub(crate) struct AppState {
     booking_reference_service: BookingReferenceService,
@@ -42,9 +44,7 @@ fn app(state: AppState) -> axum::Router {
         .route("/train/:train_id", get(train).with_state(state.clone()))
 }
 
-async fn booking_reference(
-    State(state): State<Arc<Mutex<AppState>>>,
-) -> axum::Json<BookingReference> {
+async fn booking_reference(State(state): State<Arc<Mutex<AppState>>>) -> impl IntoResponse {
     let reference = state
         .lock()
         .unwrap()
@@ -57,16 +57,30 @@ async fn booking_reference(
 async fn train(
     Path(train_id): Path<TrainId>,
     State(state): State<Arc<Mutex<AppState>>>,
-) -> axum::Json<train::Train> {
+) -> Result<impl IntoResponse, Error> {
     let train = state
         .lock()
         .unwrap()
         .borrow_mut()
         .train_data_service
-        .train(&train_id)
-        .unwrap()
+        .train(&train_id)?
         .clone();
-    axum::Json(train)
+    Ok(axum::Json(train))
+}
+
+impl IntoResponse for Error {
+    fn into_response(self) -> Response {
+        match self {
+            Error::TrainDoesNotExist(train_id) => (
+                StatusCode::NOT_FOUND,
+                format!("Train {} does not exist", train_id),
+            )
+                .into_response(),
+            _ => {
+                todo!()
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -88,6 +102,12 @@ mod tests {
         TestServer::new_with_config(app, config).unwrap()
     }
 
+    fn new_test_app_failing() -> TestServer {
+        let app = app(AppState::new());
+        let config = TestServerConfig::builder().mock_transport().build();
+        TestServer::new_with_config(app, config).unwrap()
+    }
+
     #[tokio::test]
     async fn test_booking_reference() {
         let server = new_test_app();
@@ -101,7 +121,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_train_local_2000_get() {
+    async fn test_train_local_1000_get() {
         let server = new_test_app();
 
         let train = server.get("/train/local_1000").await.json::<Train>();
@@ -111,5 +131,14 @@ mod tests {
         let local_2000 = trains.get(&TrainId::new("local_1000")).unwrap();
 
         assert_eq!(&train, local_2000);
+    }
+
+    #[tokio::test]
+    async fn test_train_does_not_exist() {
+        let server = new_test_app_failing();
+
+        let response = server.get("/train/does_not_exist").await.status_code();
+
+        assert_eq!(response, 404);
     }
 }
