@@ -6,15 +6,20 @@ use axum::routing::{get, post};
 use axum::Router;
 
 use crate::booking_reference::{BookingReference, BookingReferenceService};
+use crate::train::TrainDataService;
 
 pub(crate) struct AppState {
     booking_reference_service: BookingReferenceService,
+    train_data_service: TrainDataService,
 }
 
 impl AppState {
     pub(crate) fn new() -> AppState {
+        let trains_str = include_str!("trains.json");
+        let trains = serde_json::from_str(trains_str).unwrap();
         AppState {
             booking_reference_service: BookingReferenceService::new(0),
+            train_data_service: TrainDataService::new(trains),
         }
     }
 }

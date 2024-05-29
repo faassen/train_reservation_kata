@@ -21,8 +21,17 @@ impl SeatId {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-struct TrainDataService {
-    trains: HashMap<TrainId, Train>,
+pub(crate) struct TrainDataService {
+    trains: TrainsData,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, serde::Serialize, serde::Deserialize)]
+pub(crate) struct TrainsData(HashMap<TrainId, Train>);
+
+impl TrainsData {
+    fn new() -> Self {
+        TrainsData(HashMap::new())
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, serde::Serialize, serde::Deserialize)]
@@ -90,18 +99,20 @@ impl Train {
 }
 
 impl TrainDataService {
-    pub(crate) fn new(trains: HashMap<TrainId, Train>) -> TrainDataService {
+    pub(crate) fn new(trains: TrainsData) -> TrainDataService {
         TrainDataService { trains }
     }
 
     pub(crate) fn train(&self, train_id: &TrainId) -> Result<&Train, Error> {
         self.trains
+            .0
             .get(train_id)
             .ok_or(Error::TrainDoesNotExist(train_id.clone()))
     }
 
     pub(crate) fn train_mut(&mut self, train_id: &TrainId) -> Result<&mut Train, Error> {
         self.trains
+            .0
             .get_mut(train_id)
             .ok_or(Error::TrainDoesNotExist(train_id.clone()))
     }
@@ -114,7 +125,7 @@ mod tests {
 
     #[test]
     fn test_train_doesnt_exist() {
-        let service = TrainDataService::new(HashMap::new());
+        let service = TrainDataService::new(TrainsData::new());
         let train_id = TrainId::new("doesnt_exist");
         let train = service.train(&train_id).unwrap_err();
         assert_eq!(train, Error::TrainDoesNotExist(train_id));
@@ -135,7 +146,7 @@ mod tests {
         };
         let train_id = TrainId::new("train_id");
         trains.insert(train_id.clone(), train);
-        let service = TrainDataService::new(trains);
+        let service = TrainDataService::new(TrainsData(trains));
         let train = service.train(&train_id).unwrap();
         assert_eq!(
             train,
